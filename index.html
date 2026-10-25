@@ -1,0 +1,312 @@
+<!doctype html>
+<html lang="vi"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>PNCNC Process Hub</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;600;700&family=JetBrains+Mono:wght@500&display=swap">
+<style>
+html{color-scheme:light}body{margin:0;font-size:14px}[hidden]{display:none!important}
+
+/* Layout: sticky top bar with view tabs; summary strip, then Kanban / catalog / detail drawer. Aluminium-steel neutrals, anodized-bronze accent. */
+:root{
+  --bg:#f3f5f7;--panel:#ffffff;--line:#d9dee4;--fg:#18212b;--muted:#5d6b7a;
+  --accent:#a8611c;--accent-soft:#f6e9db;--steel:#2f4a63;
+  --ok:#1f7a4d;--warn:#b7791f;--bad:#c0392b;--ok-soft:#e3f3ea;--warn-soft:#fbf1dc;--bad-soft:#fae4e1;
+  --f-ui:"Be Vietnam Pro",system-ui,sans-serif;--f-mono:"JetBrains Mono",ui-monospace,monospace;
+}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
+  --bg:#12171d;--panel:#1a2129;--line:#2c3743;--fg:#e6ebf0;--muted:#94a3b3;
+  --accent:#e0954d;--accent-soft:#3a2a1b;--steel:#9fc0dd;
+  --ok:#5cc28f;--warn:#e6b25a;--bad:#ef7b6e;--ok-soft:#173326;--warn-soft:#3a2f17;--bad-soft:#3d1f1c;color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#12171d;--panel:#1a2129;--line:#2c3743;--fg:#e6ebf0;--muted:#94a3b3;
+  --accent:#e0954d;--accent-soft:#3a2a1b;--steel:#9fc0dd;
+  --ok:#5cc28f;--warn:#e6b25a;--bad:#ef7b6e;--ok-soft:#173326;--warn-soft:#3a2f17;--bad-soft:#3d1f1c;color-scheme:dark}
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--fg);font-family:var(--f-ui);font-size:14px;line-height:1.5}
+body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset-top,0px);z-index:10;background:var(--panel)}
+.wrap{padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));max-width:1400px;margin:0 auto}
+header{position:sticky;top:env(safe-area-inset-top,0px);z-index:5;background:var(--panel);border-bottom:1px solid var(--line)}
+header .wrap{display:flex;flex-wrap:wrap;align-items:center;gap:12px;padding-block:12px}
+.brand{display:flex;flex-direction:column;margin-right:auto}
+.brand b{font-size:17px;letter-spacing:-.01em}
+.brand span{font-size:12px;color:var(--muted)}
+nav{display:flex;gap:4px;background:var(--bg);border:1px solid var(--line);border-radius:8px;padding:3px}
+nav button{border:0;background:none;color:var(--muted);font:inherit;font-weight:500;padding:6px 12px;border-radius:6px;cursor:pointer}
+nav button[aria-pressed="true"]{background:var(--panel);color:var(--fg);box-shadow:0 1px 2px rgba(0,0,0,.12)}
+.btn{font:inherit;font-weight:600;border:1px solid var(--accent);background:var(--accent);color:#fff;border-radius:7px;padding:7px 14px;cursor:pointer}
+.btn.ghost{background:transparent;color:var(--accent)}
+.btn:focus-visible,nav button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-visible,.card:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+main{padding-block:20px 48px;display:flex;flex-direction:column;gap:20px}
+.strip{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:12px}
+.stat{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:14px 16px}
+.stat small{display:block;color:var(--muted);font-size:12px;text-transform:uppercase;letter-spacing:.06em}
+.stat b{font-size:26px;font-variant-numeric:tabular-nums}
+.bar{height:8px;border-radius:4px;background:var(--line);overflow:hidden;margin-top:8px;display:flex}
+.bar i{display:block;height:100%}
+.pipeline{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:14px 16px}
+.pipeline h2,.sec h2{font-size:13px;margin:0 0 10px;text-transform:uppercase;letter-spacing:.06em;color:var(--muted)}
+.legend{display:flex;flex-wrap:wrap;gap:10px 16px;font-size:12px;color:var(--muted);margin-top:8px}
+.legend span::before{content:"";display:inline-block;width:9px;height:9px;border-radius:2px;margin-right:5px;background:var(--c)}
+.board{display:grid;grid-auto-flow:column;grid-auto-columns:minmax(230px,1fr);gap:12px;overflow-x:auto;padding-bottom:8px}
+.col{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:10px;display:flex;flex-direction:column;gap:8px;min-height:120px}
+.col h3{margin:0 2px 2px;font-size:13px;display:flex;justify-content:space-between}
+.col h3 em{font-style:normal;color:var(--muted);font-family:var(--f-mono);font-size:12px}
+.card{border:1px solid var(--line);border-left:3px solid var(--c,var(--line));border-radius:8px;padding:9px 10px;background:var(--bg);cursor:pointer;display:flex;flex-direction:column;gap:4px}
+.card:hover{border-color:var(--accent)}
+.code{font-family:var(--f-mono);font-size:11px;color:var(--accent)}
+.card b{font-size:13.5px;line-height:1.35}
+.meta{display:flex;flex-wrap:wrap;gap:6px;font-size:11.5px;color:var(--muted)}
+.pill{display:inline-block;font-size:11px;font-weight:600;padding:1px 8px;border-radius:99px;background:var(--line);color:var(--fg)}
+.pill.ok{background:var(--ok-soft);color:var(--ok)}.pill.warn{background:var(--warn-soft);color:var(--warn)}.pill.bad{background:var(--bad-soft);color:var(--bad)}
+.empty-col{font-size:12px;color:var(--muted);padding:8px 4px}
+.sec{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:14px 16px}
+.tbl{overflow-x:auto}
+table{border-collapse:collapse;width:100%;min-width:760px;font-size:13px}
+th,td{text-align:left;padding:8px 10px;border-bottom:1px solid var(--line);vertical-align:top}
+th{font-size:11.5px;text-transform:uppercase;letter-spacing:.05em;color:var(--muted);font-weight:600}
+td.num{font-variant-numeric:tabular-nums;font-family:var(--f-mono);font-size:12px}
+tbody tr{cursor:pointer}tbody tr:hover{background:var(--bg)}
+.filters{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:10px}
+input,select,textarea{font:inherit;color:var(--fg);background:var(--bg);border:1px solid var(--line);border-radius:6px;padding:6px 8px;min-width:0}
+.drawer{position:fixed;inset:0;z-index:20;display:flex;justify-content:flex-end;background:rgba(10,15,20,.45)}
+.panel{width:min(760px,100%);height:100%;background:var(--panel);overflow-y:auto;padding:20px max(20px,env(safe-area-inset-right,0px)) calc(28px + env(safe-area-inset-bottom,0px)) 20px;padding-top:calc(20px + env(safe-area-inset-top,0px));display:flex;flex-direction:column;gap:16px}
+.panel h2{margin:0;font-size:20px;text-wrap:balance}
+.grid2{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:10px}
+label{display:flex;flex-direction:column;gap:3px;font-size:12px;color:var(--muted);font-weight:500}
+label input,label select,label textarea{color:var(--fg);font-size:13.5px}
+.life{display:flex;gap:4px;overflow-x:auto;padding-bottom:4px}
+.life button{flex:1 0 auto;font:inherit;font-size:12px;border:1px solid var(--line);background:var(--bg);color:var(--muted);padding:6px 8px;border-radius:6px;cursor:pointer;white-space:nowrap}
+.life button.done{color:var(--ok);border-color:var(--ok)}
+.life button.cur{background:var(--accent);border-color:var(--accent);color:#fff;font-weight:600}
+.stages{overflow-x:auto}
+.stages table{min-width:640px}
+.stages input{width:100%}
+.checks{display:grid;gap:6px}
+.checks label{flex-direction:row;align-items:center;gap:8px;color:var(--fg);font-size:13px;font-weight:400}
+.issues{display:flex;flex-direction:column;gap:4px;font-size:13px}
+.issues div{padding:6px 10px;border-radius:6px;background:var(--warn-soft);color:var(--warn)}
+.issues div.okmsg{background:var(--ok-soft);color:var(--ok)}
+.row{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+.toast{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(20px + env(safe-area-inset-bottom,0px));background:var(--fg);color:var(--bg);padding:9px 16px;border-radius:8px;font-size:13px;z-index:30}
+.notice{font-size:12.5px;color:var(--muted);background:var(--accent-soft);border-radius:8px;padding:8px 12px}
+.emptystate{text-align:center;padding:40px 16px;color:var(--muted)}
+.emptystate b{display:block;color:var(--fg);font-size:16px;margin-bottom:4px}
+.panel{width:min(980px,100%)}
+.dtabs{display:flex;gap:4px;border-bottom:1px solid var(--line)}
+.dtabs button{font:inherit;font-weight:600;font-size:13px;border:0;background:none;color:var(--muted);padding:8px 12px;border-bottom:2px solid transparent;cursor:pointer;display:flex;gap:6px;align-items:center}
+.dtabs button[aria-pressed="true"]{color:var(--fg);border-bottom-color:var(--accent)}
+.dtabs button:disabled{opacity:.4;cursor:default}
+.hint{font-size:12.5px;color:var(--muted);margin:0}
+.flow{display:flex;align-items:stretch;gap:0;overflow-x:auto;padding:14px 4px 16px;scroll-snap-type:x proximity}
+.fnode{position:relative;flex:0 0 148px;scroll-snap-align:start;text-align:left;font:inherit;color:var(--fg);background:var(--bg);border:1.5px solid var(--line);border-radius:10px;padding:10px;display:flex;flex-direction:column;gap:4px;cursor:pointer;animation:pop .4s ease both;animation-delay:var(--d)}
+.fnode:hover{border-color:var(--steel)}
+.fnode.sel{border-color:var(--accent);background:var(--accent-soft)}
+.fnode:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.fno{font-family:var(--f-mono);font-size:11px;color:var(--muted)}.fno b{color:var(--accent)}
+.fname{font-weight:600;font-size:13px;line-height:1.3}
+.fwho{font-size:11.5px;color:var(--muted);margin-top:auto}
+.fbadge{position:absolute;top:-8px;right:-8px;min-width:20px;height:20px;border-radius:10px;background:var(--bad);color:#fff;font-size:11px;font-weight:700;display:grid;place-items:center;padding:0 5px}
+.fio{flex:0 0 130px;border-radius:10px;padding:10px;background:var(--steel);color:var(--panel);font-size:11px;font-weight:700;letter-spacing:.08em;display:flex;flex-direction:column;gap:4px}
+.fio span{font-weight:500;letter-spacing:0;font-size:12px;line-height:1.35}
+.fio.out{background:var(--ok)}
+.farrow{flex:0 0 30px;align-self:center;height:2px;position:relative;background:repeating-linear-gradient(90deg,var(--muted) 0 6px,transparent 6px 10px);background-size:20px 2px;animation:flowdash 1s linear infinite}
+.farrow::after{content:"";position:absolute;right:-1px;top:-4px;border:5px solid transparent;border-left:7px solid var(--muted);border-right:0}
+@keyframes flowdash{to{background-position:20px 0}}
+@keyframes pop{from{transform:translateY(6px);opacity:.3}}
+.slabar{display:flex;height:8px;margin-bottom:12px;gap:2px;border-radius:4px;overflow:hidden}
+.slabar i{display:block}
+.sbox{border:1px solid var(--line);border-radius:10px;padding:14px;background:var(--bg)}
+.sbox h3{margin:0 0 8px;font-size:15px}
+.sbox dl{display:grid;grid-template-columns:130px 1fr;gap:6px 12px;margin:0;font-size:13px}
+.sbox dt{color:var(--muted)}.sbox dd{margin:0;min-width:0}
+@media (max-width:520px){.sbox dl{grid-template-columns:1fr}.sbox dd{margin-bottom:6px}}
+.composer{display:flex;flex-direction:column;gap:8px;margin-top:10px;border:1px solid var(--line);border-radius:10px;padding:10px;background:var(--panel)}
+.kind{flex-direction:row;align-items:center;gap:4px;color:var(--fg);font-size:12.5px;font-weight:500}
+#clist{display:flex;flex-direction:column;gap:8px;margin-top:10px}
+.cmt{border:1px solid var(--line);border-radius:10px;padding:10px 12px;background:var(--panel)}
+.cmt p{margin:6px 0;white-space:pre-wrap;overflow-wrap:anywhere}
+.cmt.done{opacity:.6}
+.link{font:inherit;font-size:12px;border:0;background:none;color:var(--accent);cursor:pointer;padding:0;font-weight:600}
+.stagechip{border:0;cursor:pointer;font:inherit;font-size:11px;font-weight:600}
+.chip{font:inherit;font-size:12px;border:1px solid var(--line);background:var(--bg);color:var(--muted);border-radius:99px;padding:3px 10px;cursor:pointer}
+.chip[aria-pressed="true"]{border-color:var(--accent);color:var(--accent);font-weight:600}
+@media (prefers-reduced-motion:reduce){.fnode,.farrow{animation:none}}
+@media (prefers-reduced-motion:reduce){*{transition:none!important}}
+</style>
+
+</head><body>
+<header><div class="wrap">
+  <div class="brand"><b>PNCNC Process Hub</b><span>Quản lý thiết kế &amp; triển khai quy trình trên Base Workflow</span></div>
+  <nav aria-label="Chế độ xem">
+    <button id="tab-board" aria-pressed="true" data-v="board">Tiến độ</button>
+    <button id="tab-list" aria-pressed="false" data-v="list">Danh mục</button>
+    <button id="tab-kpi" aria-pressed="false" data-v="kpi">Vận hành</button>
+  </nav>
+  <span id="who" class="hint"></span><button class="btn" id="addBtn">+ Quy trình</button>
+</div></header>
+
+<section id="login" class="wrap" hidden style="padding-block:60px"><form id="loginForm" class="sec" style="max-width:420px;margin:0 auto;display:flex;flex-direction:column;gap:12px"><h2 style="font-size:18px;color:var(--fg);text-transform:none;letter-spacing:0">Đăng nhập Process Hub</h2><p class="hint">Nhập email công ty, hệ thống sẽ gửi link đăng nhập (không cần mật khẩu).</p><input id="lemail" type="email" required placeholder="ten@congty.vn" aria-label="Email"><button class="btn" type="submit">Gửi link đăng nhập</button><p id="lmsg" class="hint"></p></form></section>
+<main class="wrap">
+  <div id="notice" class="notice" hidden></div>
+  <section class="strip" id="strip"></section>
+  <section class="pipeline"><h2>Tiến độ toàn danh mục</h2><div class="bar" id="pbar" style="height:14px"></div><div class="legend" id="plegend"></div></section>
+  <section id="view-board"><div class="board" id="board"></div></section>
+  <section id="view-list" class="sec" hidden>
+    <div class="filters">
+      <input id="q" placeholder="Tìm mã, tên, chủ sở hữu…" aria-label="Tìm kiếm">
+      <select id="fGroup" aria-label="Lọc nhóm"><option value="">Tất cả nhóm</option></select>
+      <select id="fStatus" aria-label="Lọc trạng thái"><option value="">Tất cả trạng thái</option></select>
+    </div>
+    <div class="tbl"><table><thead><tr><th>Mã</th><th>Quy trình</th><th>Nhóm</th><th>Chủ sở hữu</th><th>Trạng thái</th><th>Số GĐ</th><th>Tổng SLA</th><th>Hạn</th><th>Kiểm tra</th><th>Góp ý mở</th></tr></thead><tbody id="tbody"></tbody></table></div>
+  </section>
+  <section id="view-kpi" class="sec" hidden>
+    <h2>Hiệu quả sau go-live</h2>
+    <p style="margin:0 0 10px;color:var(--muted);font-size:13px">Số liệu nhập tay theo tháng. Khi có token API/Webhook của Base, phần này sẽ tự cập nhật từ job thực tế.</p>
+    <div class="tbl"><table><thead><tr><th>Quy trình</th><th>Job/tháng</th><th>Trễ SLA</th><th>Tỷ lệ trễ</th><th>GĐ nghẽn nhất</th><th>Quay lại</th></tr></thead><tbody id="kbody"></tbody></table></div>
+  </section>
+</main>
+
+<div class="drawer" id="drawer" hidden><div class="panel" tabindex="-1" role="dialog" aria-modal="true" aria-labelledby="dTitle" id="panel"></div></div>
+<div class="toast" id="toast" hidden></div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script>
+<script src="config.js"></script>
+<script>
+const LIFE=["Khảo sát","Thiết kế","Duyệt owner","Cấu hình Base","Chạy thử","Go-live","Cải tiến"];
+const LCOL=["#8a97a6","#3f7cb5","#7b5ea7","#a8611c","#c99a2e","#1f7a4d","#2f8f8a"];
+const CHECKS=["SIPOC / Input–Output đã chốt","Đủ người QL, thực thi, đánh giá mỗi GĐ","SLA từng GĐ đã thống nhất","Trường tùy chỉnh bắt buộc đã tạo trên Base","Nhóm quyền tạo job đã tạo","Mẫu in (Word ${…}) đã kiểm tra","Đào tạo người dùng","Sơ đồ quy trình đã phát hành"];
+let items=[],db=null,canWrite=true,view="board",cur=null;
+const $=s=>document.querySelector(s);
+const esc=s=>String(s??"").replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+function toast(m){const t=$("#toast");t.textContent=m;t.hidden=false;clearTimeout(toast.t);toast.t=setTimeout(()=>t.hidden=true,2600)}
+const sla=p=>(p.stages||[]).reduce((a,s)=>a+(+s.sla||0),0);
+function issues(p){const r=[];(p.stages||[]).forEach((s,i)=>{const n="GĐ"+(i+1);if(!s.manager)r.push(n+": thiếu người quản lý");if(!s.doer)r.push(n+": thiếu người thực thi");if(!(+s.sla))r.push(n+": chưa có SLA");if(!s.output)r.push(n+": chưa ghi kết quả đầu ra")});
+  if(!p.input)r.push("Chưa có Input");if(!p.output)r.push("Chưa có Output");if(!p.owner)r.push("Chưa có chủ sở hữu");if(!(p.stages||[]).length)r.push("Chưa có giai đoạn nào");return r}
+function late(p){return p.due&&p.status<5&&new Date(p.due)<new Date(new Date().toDateString())}
+function stat(){const n=items.length,live=items.filter(p=>p.status>=5).length,lt=items.filter(late).length,iss=items.filter(p=>p.status>=3&&p.status<5&&issues(p).length).length;
+  $("#strip").innerHTML=[["Tổng quy trình",n],["Đã go-live",live+(n?` <small style="display:inline;font-size:13px;text-transform:none;letter-spacing:0">/ ${n} · ${Math.round(live/n*100)}%</small>`:"")],["Đang triển khai",items.filter(p=>p.status>0&&p.status<5).length],["Trễ hạn",`<span style="color:${lt?"var(--bad)":"inherit"}">${lt}</span>`],["Đang cấu hình còn lỗi",`<span style="color:${iss?"var(--warn)":"inherit"}">${iss}</span>`]].map(([a,b])=>`<div class="stat"><small>${a}</small><b>${b}</b></div>`).join("");
+  $("#pbar").innerHTML=n?LIFE.map((l,i)=>{const c=items.filter(p=>p.status===i).length;return c?`<i style="width:${c/n*100}%;background:${LCOL[i]}" title="${l}: ${c}"></i>`:""}).join(""):"";
+  $("#plegend").innerHTML=LIFE.map((l,i)=>`<span style="--c:${LCOL[i]}">${l} · ${items.filter(p=>p.status===i).length}</span>`).join("")}
+function card(p){const is=issues(p).length;return `<div class="card" tabindex="0" data-id="${p.id}" style="--c:${LCOL[p.status]}"><span class="code">${esc(p.code)}</span><b>${esc(p.name)}</b><div class="meta"><span>${esc(p.owner||"—")}</span><span>· ${(p.stages||[]).length} GĐ · ${sla(p)}h</span>${(n=>n?`<span class="pill warn">💬 ${n}</span>`:"")(comments.filter(c=>c.pid===p.id&&!c.resolved).length)}</div><div class="meta">${late(p)?'<span class="pill bad">Trễ hạn</span>':p.due?`<span class="pill">Hạn ${fmt(p.due)}</span>`:""}${p.status>=1&&p.status<5?(is?`<span class="pill warn">${is} lỗi</span>`:'<span class="pill ok">Đủ thông tin</span>'):""}</div></div>`}
+const fmt=d=>d?d.split("-").reverse().slice(0,2).join("/"):"";
+function render(){stat();
+  if(!items.length){$("#board").innerHTML=`<div class="emptystate" style="grid-column:1/-1"><b>Chưa có quy trình nào</b>Bấm “+ Quy trình” để thêm luồng đầu tiên.</div>`}
+  else $("#board").innerHTML=LIFE.map((l,i)=>{const c=items.filter(p=>p.status===i).sort((a,b)=>a.code.localeCompare(b.code));return `<div class="col"><h3>${l}<em>${c.length}</em></h3>${c.map(card).join("")||'<div class="empty-col">Trống</div>'}</div>`}).join("");
+  const q=$("#q").value.toLowerCase(),g=$("#fGroup").value,st=$("#fStatus").value;
+  const groups=[...new Set(items.map(p=>p.group).filter(Boolean))].sort();const gv=$("#fGroup").value;$("#fGroup").innerHTML='<option value="">Tất cả nhóm</option>'+groups.map(x=>`<option${x===gv?" selected":""}>${esc(x)}</option>`).join("");
+  const rows=items.filter(p=>(!q||(p.code+p.name+p.owner).toLowerCase().includes(q))&&(!g||p.group===g)&&(st===""||p.status==st)).sort((a,b)=>a.code.localeCompare(b.code));
+  $("#tbody").innerHTML=rows.map(p=>{const is=issues(p).length;return `<tr data-id="${p.id}"><td class="code">${esc(p.code)}</td><td><b>${esc(p.name)}</b></td><td>${esc(p.group)}</td><td>${esc(p.owner)}</td><td><span class="pill" style="background:${LCOL[p.status]};color:#fff">${LIFE[p.status]}</span></td><td class="num">${(p.stages||[]).length}</td><td class="num">${sla(p)}h</td><td class="num">${late(p)?'<span class="pill bad">'+fmt(p.due)+"</span>":fmt(p.due)}</td><td>${is?`<span class="pill warn">${is} lỗi</span>`:'<span class="pill ok">OK</span>'}</td><td class="num">${comments.filter(c=>c.pid===p.id&&!c.resolved).length||"—"}</td></tr>`}).join("")||'<tr><td colspan="10" class="emptystate">Không có quy trình phù hợp bộ lọc.</td></tr>';
+  const live=items.filter(p=>p.status>=5);
+  $("#kbody").innerHTML=live.map(p=>{const k=p.kpi||{},r=k.jobs?Math.round((k.late||0)/k.jobs*100):null;return `<tr data-id="${p.id}"><td><span class="code">${esc(p.code)}</span> <b>${esc(p.name)}</b></td><td class="num">${k.jobs??"—"}</td><td class="num">${k.late??"—"}</td><td>${r==null?"—":`<span class="pill ${r>20?"bad":r>10?"warn":"ok"}">${r}%</span>`}</td><td>${esc(k.bottleneck||"—")}</td><td class="num">${k.rework??"—"}</td></tr>`}).join("")||'<tr><td colspan="6" class="emptystate">Chưa có quy trình nào go-live. Khi chuyển sang “Go-live”, quy trình sẽ hiện ở đây.</td></tr>'}
+function setView(v){view=v;["board","list","kpi"].forEach(x=>{$("#view-"+x).hidden=x!==v;$("#tab-"+x).setAttribute("aria-pressed",x===v)})}
+document.querySelectorAll("nav button").forEach(b=>b.onclick=()=>setView(b.dataset.v));
+["#q","#fGroup","#fStatus"].forEach(s=>$(s).addEventListener("input",render));
+$("#fStatus").innerHTML+=LIFE.map((l,i)=>`<option value="${i}">${l}</option>`).join("");
+document.addEventListener("click",e=>{const t=e.target.closest("[data-id]");if(t&&!e.target.closest(".panel"))openP(items.find(p=>p.id===t.dataset.id))});
+document.addEventListener("keydown",e=>{if(e.key==="Enter"&&e.target.classList?.contains("card"))openP(items.find(p=>p.id===e.target.dataset.id));if(e.key==="Escape"&&!$("#drawer").hidden)closeP()});
+$("#drawer").addEventListener("click",e=>{if(e.target.id==="drawer")closeP()});
+function closeP(){$("#drawer").hidden=true;cur=null}
+$("#addBtn").onclick=()=>openP({id:"",code:"",name:"",group:"",owner:"",status:0,due:"",input:"",output:"",baseLink:"",note:"",stages:[{name:"",manager:"",doer:"",sla:"",output:""}],checks:{},kpi:{}});
+let tab="flow",selStage=null,comments=[],users=null,cFilter="open";
+function openP(p){if(!p)return;cur=JSON.parse(JSON.stringify(p));cur.stages=cur.stages||[];cur.checks=cur.checks||{};cur.kpi=cur.kpi||{};tab=cur.id?"flow":"design";selStage=null;drawP();$("#drawer").hidden=false;$("#panel").focus()}
+const pc=()=>comments.filter(c=>c.pid===cur.id);
+const KIND={idea:["Đề xuất cải tiến","ok"],issue:["Vấn đề / vướng mắc","bad"],q:["Câu hỏi","warn"]};
+function ago(t){const m=Math.round((Date.now()-new Date(t))/6e4);return m<1?"vừa xong":m<60?m+" phút trước":m<1440?Math.round(m/60)+" giờ trước":new Date(t).toLocaleDateString("vi-VN")}
+async function names(ids){const out={};if(users&&ids.length){try{const ps=await users.profiles(ids);ids.forEach(i=>out[i]=ps[i]?.name||"Thành viên")}catch(e){}}return out}
+function drawP(){const p=cur,open=pc().filter(c=>!c.resolved).length;
+  $("#panel").innerHTML=`<div class="row" style="justify-content:space-between"><span><span class="code">${esc(p.code||"Quy trình mới")}</span> <span class="pill">${LIFE[p.status]}</span></span><button class="btn ghost" id="closeBtn">Đóng</button></div>
+  <h2 id="dTitle">${esc(p.name||"Quy trình mới")}</h2>
+  <nav class="dtabs" aria-label="Nội dung quy trình">${[["flow","Sơ đồ quy trình"],["talk",`Thảo luận${open?` <span class="pill warn">${open}</span>`:""}`],["design","Thiết kế"]].map(([k,l])=>`<button data-tab="${k}" aria-pressed="${tab===k}"${!p.id&&k!=="design"?" disabled":""}>${l}</button>`).join("")}</nav>
+  <div id="tabBody"></div>`;
+  $("#closeBtn").onclick=closeP;
+  $("#panel").querySelectorAll("[data-tab]").forEach(b=>b.onclick=()=>{if(tab==="design")sync();tab=b.dataset.tab;drawP()});
+  ({flow:drawFlow,talk:drawTalk,design:drawDesign})[tab]()}
+function drawFlow(){const p=cur,cs=pc().filter(c=>!c.resolved);
+  const node=(s,i)=>{const n=cs.filter(c=>c.stage===i).length;return `<button class="fnode${selStage===i?" sel":""}" data-node="${i}" style="--d:${i*80}ms"><span class="fno">GĐ${i+1}${s.sla?` · <b>${esc(s.sla)}h</b>`:""}</span><span class="fname">${esc(s.name||"(chưa đặt tên)")}</span><span class="fwho">${esc((s.doer||"—").split(",")[0])}${(s.doer||"").includes(",")?" +":""}</span>${n?`<span class="fbadge" title="${n} góp ý đang mở">${n}</span>`:""}</button>`};
+  $("#tabBody").innerHTML=`<p class="hint">Bấm vào từng giai đoạn để xem chi tiết và góp ý. Số trên góc là góp ý đang mở.</p>
+  <div class="flow" role="list"><div class="fio">INPUT<span>${esc(p.input||"—")}</span></div>${p.stages.map((s,i)=>`<i class="farrow" aria-hidden="true"></i>${node(s,i)}`).join("")}<i class="farrow" aria-hidden="true"></i><div class="fio out">OUTPUT<span>${esc(p.output||"—")}</span></div></div>
+  <div class="slabar">${p.stages.map((s,i)=>`<i style="flex:${Math.max(+s.sla||0,1)};background:${selStage===i?"var(--accent)":"var(--steel)"}" title="GĐ${i+1}: ${esc(s.sla||"?")}h"></i>`).join("")}</div>
+  <p class="hint" style="margin-top:-6px">Thanh trên: tỷ trọng SLA từng giai đoạn · tổng ${sla(p)}h (~${Math.round(sla(p)/24*10)/10} ngày)</p>
+  <div id="sdetail"></div>`;
+  $("#tabBody").querySelectorAll("[data-node]").forEach(b=>b.onclick=()=>{selStage=+b.dataset.node===selStage?null:+b.dataset.node;drawFlow()});
+  if(selStage!=null&&p.stages[selStage]){const s=p.stages[selStage];
+    $("#sdetail").innerHTML=`<div class="sbox"><h3>GĐ${selStage+1} · ${esc(s.name)}</h3><dl>${[["Người quản lý",s.manager],["Người thực thi",s.doer],["SLA",s.sla?s.sla+" giờ":""],["Kết quả đầu ra",s.output]].map(([a,b])=>`<dt>${a}</dt><dd>${esc(b||"—")}</dd>`).join("")}</dl>
+    <h3 style="margin-top:12px">Góp ý cho giai đoạn này</h3><div id="clist"></div>${composer(selStage)}</div>`;
+    listComments(pc().filter(c=>c.stage===selStage),$("#clist"));bindComposer(selStage)}}
+function composer(stage){return `<form class="composer" id="cform"><div class="row">${Object.entries(KIND).map(([k,[l]],i)=>`<label class="kind"><input type="radio" name="ckind" value="${k}"${i===0?" checked":""}> ${l}</label>`).join("")}</div>
+  ${stage===undefined?`<select id="cstage" aria-label="Gắn với giai đoạn"><option value="">Toàn quy trình</option>${cur.stages.map((s,i)=>`<option value="${i}">GĐ${i+1} · ${esc(s.name)}</option>`).join("")}</select>`:""}
+  <textarea id="ctext" rows="3" placeholder="Viết góp ý: điều gì đang vướng, nên sửa thế nào…" aria-label="Nội dung góp ý"></textarea><div class="row"><button class="btn" type="submit">Gửi góp ý</button></div></form>`}
+function bindComposer(stage){$("#cform").onsubmit=async e=>{e.preventDefault();const text=$("#ctext").value.trim();if(!text)return;if(!db){toast("Chưa kết nối kho dữ liệu");return}
+  let st=stage;if(st===undefined){const v=$("#cstage").value;st=v===""?null:+v}
+  const author=users?await users.id().catch(()=>null):null;
+  try{await db.collection("comments").add({pid:cur.id,stage:st,kind:document.querySelector("[name=ckind]:checked").value,text,author,authorName:(users&&users.name)||"Thành viên",resolved:false,createdAt:new Date().toISOString()});$("#ctext").value="";toast("Đã gửi góp ý")}catch(err){toast(err?.code==="permission_denied"?"Bạn chỉ có quyền xem, không thể góp ý":"Không gửi được: "+(err?.message||err))}}}
+async function listComments(list,el){list=[...list].sort((a,b)=>b.createdAt.localeCompare(a.createdAt));
+  if(!list.length){el.innerHTML='<p class="hint">Chưa có góp ý nào.</p>';return}
+  const nm=await names([...new Set(list.map(c=>c.author).filter(Boolean))]);
+  el.innerHTML=list.map(c=>{const [kl,kc]=KIND[c.kind]||KIND.q;return `<article class="cmt${c.resolved?" done":""}"><div class="row"><b></b><span class="pill ${kc}">${kl}</span>${c.stage!=null&&cur.stages[c.stage]?`<button class="pill stagechip" data-goto="${c.stage}">GĐ${c.stage+1}</button>`:""}<span class="hint" style="margin:0 0 0 auto">${ago(c.createdAt)}</span></div><p></p><div class="row"><button class="link" data-res="${c.id}">${c.resolved?"Mở lại":"✓ Đánh dấu đã xử lý"}</button></div></article>`}).join("");
+  el.querySelectorAll(".cmt").forEach((a,i)=>{a.querySelector("b").textContent=list[i].authorName||nm[list[i].author]||"Thành viên";a.querySelector("p").textContent=list[i].text});
+  el.querySelectorAll("[data-res]").forEach(b=>b.onclick=async()=>{const c=list.find(x=>x.id===b.dataset.res);try{await db.collection("comments").doc(c.id).update({resolved:!c.resolved,resolvedAt:new Date().toISOString()})}catch(e){toast("Không cập nhật được: "+(e?.message||e))}});
+  el.querySelectorAll("[data-goto]").forEach(b=>b.onclick=()=>{tab="flow";selStage=+b.dataset.goto;drawP()})}
+function drawTalk(){const all=pc(),f=all.filter(c=>cFilter==="all"||(cFilter==="open"?!c.resolved:c.resolved));
+  $("#tabBody").innerHTML=`<p class="hint">Góp ý nội bộ để cải tiến quy trình. Gắn vào giai đoạn cụ thể để người phụ trách dễ xử lý.</p>${composer()}
+  <div class="row" style="margin-top:6px">${[["open","Đang mở"],["done","Đã xử lý"],["all","Tất cả"]].map(([k,l])=>`<button class="chip" data-cf="${k}" aria-pressed="${cFilter===k}">${l} · ${k==="all"?all.length:all.filter(c=>k==="open"?!c.resolved:c.resolved).length}</button>`).join("")}</div><div id="clist"></div>`;
+  bindComposer();$("#tabBody").querySelectorAll("[data-cf]").forEach(b=>b.onclick=()=>{cFilter=b.dataset.cf;drawTalk()});listComments(f,$("#clist"))}
+function drawDesign(){const p=cur,is=issues(p);
+  $("#tabBody").innerHTML=`<div class="life" role="group" aria-label="Vòng đời triển khai">${LIFE.map((l,i)=>`<button data-st="${i}" class="${i<p.status?"done":i===p.status?"cur":""}">${i<p.status?"✓ ":""}${l}</button>`).join("")}</div>
+  <div class="grid2">
+   <label>Mã<input id="f-code" value="${esc(p.code)}" placeholder="VD: KT-00"></label>
+   <label>Tên quy trình<input id="f-name" value="${esc(p.name)}"></label>
+   <label>Nhóm / Phòng<input id="f-group" value="${esc(p.group)}" placeholder="Kỹ thuật, Sản xuất…"></label>
+   <label>Chủ sở hữu (process owner)<input id="f-owner" value="${esc(p.owner)}" placeholder="@username"></label>
+   <label>Hạn go-live<input type="date" id="f-due" value="${esc(p.due)}"></label>
+   <label>Link luồng trên Base<input id="f-base" value="${esc(p.baseLink)}" placeholder="https://…base.vn/…"></label>
+  </div>
+  <div class="grid2"><label>Input (đầu vào)<textarea id="f-input" rows="2">${esc(p.input)}</textarea></label><label>Output (đầu ra)<textarea id="f-output" rows="2">${esc(p.output)}</textarea></label></div>
+  <div><h2 style="font-size:14px;margin-bottom:6px">Giai đoạn · tổng SLA ${sla(p)}h</h2><div class="stages"><table><thead><tr><th>#</th><th>Tên GĐ</th><th>QL</th><th>Thực thi</th><th>SLA (h)</th><th>Kết quả</th><th></th></tr></thead><tbody>
+   ${p.stages.map((s,i)=>`<tr><td class="num">${i+1}</td>${["name","manager","doer","sla","output"].map(k=>`<td><input aria-label="${k} GĐ${i+1}" data-s="${i}" data-k="${k}" value="${esc(s[k])}"${k==="sla"?' inputmode="numeric" style="width:60px"':""}></td>`).join("")}<td><button class="btn ghost" data-del="${i}" aria-label="Xóa GĐ${i+1}" style="padding:3px 8px">×</button></td></tr>`).join("")}
+   </tbody></table></div><button class="btn ghost" id="addStage" style="margin-top:8px">+ Giai đoạn</button></div>
+  <div><h2 style="font-size:14px;margin-bottom:6px">Kiểm tra trước khi cấu hình Base</h2><div class="issues">${is.length?is.slice(0,8).map(x=>`<div>${esc(x)}</div>`).join("")+(is.length>8?`<div>… và ${is.length-8} lỗi khác</div>`:""):'<div class="okmsg">Đủ thông tin để cấu hình trên Base.</div>'}</div></div>
+  <div><h2 style="font-size:14px;margin-bottom:6px">Checklist triển khai · ${CHECKS.filter((c,i)=>p.checks[i]).length}/${CHECKS.length}</h2><div class="checks">${CHECKS.map((c,i)=>`<label><input type="checkbox" data-c="${i}"${p.checks[i]?" checked":""}>${esc(c)}</label>`).join("")}</div></div>
+  ${p.status>=5?`<div><h2 style="font-size:14px;margin-bottom:6px">Số liệu vận hành (tháng gần nhất)</h2><div class="grid2">${[["jobs","Số job"],["late","Job trễ SLA"],["bottleneck","GĐ nghẽn nhất"],["rework","Số lần quay lại"]].map(([k,l])=>`<label>${l}<input data-kpi="${k}" value="${esc(p.kpi[k]??"")}"></label>`).join("")}</div></div>`:""}
+  <label>Ghi chú<textarea id="f-note" rows="3">${esc(p.note)}</textarea></label>
+  <div class="row"><button class="btn" id="saveBtn">Lưu thay đổi</button>${p.id?'<button class="btn ghost" id="delBtn">Xóa quy trình</button>':""}<span id="delConfirm"></span></div>`;
+  $("#saveBtn").onclick=save;
+  $("#tabBody").querySelectorAll("[data-st]").forEach(b=>b.onclick=()=>{sync();cur.status=+b.dataset.st;drawP()});
+  $("#addStage").onclick=()=>{sync();cur.stages.push({name:"",manager:"",doer:"",sla:"",output:""});drawP()};
+  $("#tabBody").querySelectorAll("[data-del]").forEach(b=>b.onclick=()=>{sync();cur.stages.splice(+b.dataset.del,1);drawP()});
+  $("#tabBody").querySelectorAll("[data-c],[data-s]").forEach(b=>b.onchange=()=>{sync();drawP()});
+  if(p.id)$("#delBtn").onclick=()=>{$("#delConfirm").innerHTML='Xóa vĩnh viễn? <button class="btn" id="yesDel" style="background:var(--bad);border-color:var(--bad)">Xóa</button>';$("#yesDel").onclick=del}}
+function sync(){const F={code:"f-code",name:"f-name",group:"f-group",owner:"f-owner",due:"f-due",baseLink:"f-base",input:"f-input",output:"f-output",note:"f-note"};
+  for(const[k,id] of Object.entries(F)){const el=$("#"+id);if(el)cur[k]=["input","output","note"].includes(k)?el.value:el.value.trim()}
+  $("#panel").querySelectorAll("[data-s]").forEach(i=>cur.stages[+i.dataset.s][i.dataset.k]=i.value);
+  $("#panel").querySelectorAll("[data-c]").forEach(i=>cur.checks[i.dataset.c]=i.checked);
+  $("#panel").querySelectorAll("[data-kpi]").forEach(i=>{const x=i.value.trim();cur.kpi[i.dataset.kpi]=i.dataset.kpi==="bottleneck"?x:(x===""?null:+x)})}
+async function save(){sync();if(!cur.name){toast("Nhập tên quy trình trước khi lưu");return}
+  if(!db){toast("Chưa kết nối kho dữ liệu: thay đổi chưa được lưu");return}
+  const body={...cur,updatedAt:new Date().toISOString()};delete body.id;
+  try{if(cur.id)await db.collection("processes").doc(cur.id).set(body);else{const r=await db.collection("processes").add(body);cur.id=r.id}toast("Đã lưu");const _id=cur.id;tab="flow";setTimeout(()=>{const p=items.find(x=>x.id===_id);if(p&&!$("#drawer").hidden)openP(p)},300)}catch(e){toast(e?.code==="permission_denied"?"Bạn chỉ có quyền xem, không thể lưu":"Không lưu được: "+(e?.message||e))}}
+async function del(){try{await db.collection("processes").doc(cur.id).delete();toast("Đã xóa");closeP()}catch(e){toast("Không xóa được: "+(e?.message||e))}}
+render();
+(async()=>{
+  const cfg=window.HUB_CONFIG||{};
+  if(!window.supabase||!cfg.SUPABASE_URL||cfg.SUPABASE_URL.includes("YOUR-")){const n=$("#notice");n.hidden=false;n.textContent="Chưa cấu hình Supabase: mở file config.js và điền SUPABASE_URL, SUPABASE_ANON_KEY.";return}
+  const sb=window.supabase.createClient(cfg.SUPABASE_URL,cfg.SUPABASE_ANON_KEY);
+  let {data:{session}}=await sb.auth.getSession();
+  if(!session){showLogin(sb);return}
+  const u=session.user;
+  users={name:u.user_metadata?.full_name||u.email.split("@")[0],id:async()=>u.id,profiles:async()=>({})};
+  $("#who").innerHTML=`${esc(u.email)} · <button class="link" id="logout">Đăng xuất</button>`;$("#logout").onclick=async()=>{await sb.auth.signOut();location.reload()};
+  db={collection(table){return{
+    onSnapshot(next,err){const load=async()=>{const{data,error}=await sb.from(table).select("id,data");if(error){err&&err(error);return}next({docs:data.map(r=>({id:r.id,data:()=>r.data}))})};
+      load();sb.channel("rt-"+table).on("postgres_changes",{event:"*",schema:"public",table},load).subscribe();return()=>{}},
+    async add(body){const{data,error}=await sb.from(table).insert({data:body}).select("id").single();if(error)throw error;return{id:data.id}},
+    doc(id){return{
+      async set(body){const{error}=await sb.from(table).upsert({id,data:body});if(error)throw error},
+      async update(patch){const{data:r,error:e1}=await sb.from(table).select("data").eq("id",id).single();if(e1)throw e1;const{error}=await sb.from(table).update({data:{...r.data,...patch}}).eq("id",id);if(error)throw error},
+      async delete(){const{error}=await sb.from(table).delete().eq("id",id);if(error)throw error}}}}}};
+  db.collection("comments").onSnapshot(s=>{comments=s.docs.map(d=>({id:d.id,...d.data()}));render();if(cur&&cur.id&&!$("#drawer").hidden&&tab!=="design")drawP()},()=>{});
+  db.collection("processes").onSnapshot(s=>{items=s.docs.map(d=>({id:d.id,...d.data(),status:+(d.data().status||0)}));render()},e=>toast("Lỗi tải dữ liệu: "+(e?.message||e)))})();
+function showLogin(sb){$("#login").hidden=false;$("main").hidden=true;$("#addBtn").hidden=true;
+  $("#loginForm").onsubmit=async e=>{e.preventDefault();const email=$("#lemail").value.trim();const{error}=await sb.auth.signInWithOtp({email,options:{emailRedirectTo:location.href.split("#")[0]}});
+    $("#lmsg").textContent=error?"Không gửi được: "+error.message:"Đã gửi link đăng nhập tới "+email+". Mở email và bấm vào link."}}
+</script>
+</body></html>
